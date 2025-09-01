@@ -264,7 +264,7 @@ def create_playlist(sp, playlist_name, description, chart_entries):
             if len(track_uris) >= 50:
                 sp.playlist_add_items(playlist_id, track_uris)
                 track_uris = []
-                time.sleep(1)  # Avoid rate limiting
+                time.sleep(5)  # Avoid rate limiting
 
     # Add any remaining tracks
     if track_uris:
@@ -318,7 +318,7 @@ def populate_existing_playlist(sp, playlist_id, chart_entries, chart_name, date_
             if len(track_uris) >= 50:
                 sp.playlist_add_items(playlist_id, track_uris)
                 track_uris = []
-                time.sleep(1)  # Avoid rate limiting
+                time.sleep(3)  # Avoid rate limiting
 
     # Add any remaining tracks
     if track_uris:
@@ -394,38 +394,4 @@ def main():
             create_playlist(sp, playlist_name, description, chart_entries)
 
 if __name__ == "__main__":
-    # You can hardcode your playlist ID here if you want
-    HARDCODED_PLAYLIST_ID = "54MwfcvssipBoq5LAT3ZC0"
-
-    # Create a parser to check for the playlist ID argument and flags
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--playlist-id', default=HARDCODED_PLAYLIST_ID)
-    parser.add_argument('--random-90s', action='store_true')
-    parser.add_argument('--random-historical', action='store_true')
-    parser.add_argument('--headless', action='store_true')
-    args, unknown = parser.parse_known_args()
-
-    # Call the main function with the custom argv
-    import sys
-    new_argv = [sys.argv[0]]
-
-    # Add playlist ID if provided
-    new_argv.extend(['--playlist-id', args.playlist_id])
-
-    # Add random 90s flag if set
-    if args.random_90s:
-        new_argv.append('--random-90s')
-
-    # Add random historical flag if set
-    if args.random_historical:
-        new_argv.append('--random-historical')
-
-    # Add headless flag if set
-    if args.headless:
-        new_argv.append('--headless')
-
-    # Add any other arguments
-    new_argv.extend(unknown)
-
-    sys.argv = new_argv
     main()
