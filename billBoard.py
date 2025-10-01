@@ -278,16 +278,8 @@ def populate_existing_playlist(sp, playlist_id, chart_entries, chart_name, date_
     Add tracks from chart entries to an existing playlist, replacing any existing tracks.
     Also updates the playlist name and description with chart and date information.
     """
-    # First, clear all existing tracks from the playlist
-    print(f"Clearing existing tracks from playlist {playlist_id}...")
-    try:
-        sp.playlist_replace_items(playlist_id, [])
-        print("Playlist cleared successfully")
-    except Exception as e:
-        print(f"Error clearing playlist: {e}")
-        return None
-
-    # Update the playlist name and description
+    
+    # Update the playlist name and description first
     try:
         # Format chart name to look nicer (e.g., "hot-100" -> "Hot 100")
         formatted_chart_name = chart_name.replace("-", " ").title()
@@ -306,7 +298,8 @@ def populate_existing_playlist(sp, playlist_id, chart_entries, chart_name, date_
     except Exception as e:
         print(f"Error updating playlist details: {e}")
 
-    # Search for and collect track URIs
+    # First, search for and collect ALL track URIs before clearing anything
+    print("Searching for tracks...")
     track_uris = []
     found_tracks = 0
     for entry in chart_entries:
@@ -314,15 +307,49 @@ def populate_existing_playlist(sp, playlist_id, chart_entries, chart_name, date_
         if track_uri:
             track_uris.append(track_uri)
             found_tracks += 1
-            # Add tracks in batches to avoid rate limiting
-            if len(track_uris) >= 50:
-                sp.playlist_add_items(playlist_id, track_uris)
-                track_uris = []
+        # Small delay between searches to avoid rate limiting
+        time.sleep(0.5)
+
+    print(f"Found {found_tracks} out of {len(chart_entries)} tracks")
+    
+    if not track_uris:
+        print("No tracks found! Not clearing playlist to avoid creating an empty playlist.")
+        return None
+
+    # Only clear the playlist AFTER we've successfully found tracks
+    print(f"Clearing existing tracks from playlist {playlist_id}...")
+    try:
+        sp.playlist_replace_items(playlist_id, [])
+        print("Playlist cleared successfully")
+        time.sleep(2)  # Brief pause after clearing
+    except Exception as e:
+        print(f"Error clearing playlist: {e}")
+        return None
+
+    # Now add the new tracks in batches
+    print("Adding new tracks to playlist...")
+    batch_uris = []
+    for track_uri in track_uris:
+        batch_uris.append(track_uri)
+        # Add tracks in batches to avoid rate limiting
+        if len(batch_uris) >= 50:
+            try:
+                sp.playlist_add_items(playlist_id, batch_uris)
+                print(f"Added batch of {len(batch_uris)} tracks")
+                batch_uris = []
                 time.sleep(3)  # Avoid rate limiting
+            except Exception as e:
+                print(f"Error adding batch of tracks: {e}")
+                return None
 
     # Add any remaining tracks
-    if track_uris:
-        sp.playlist_add_items(playlist_id, track_uris)
+    if batch_uris:
+        try:
+            sp.playlist_add_items(playlist_id, batch_uris)
+            print(f"Added final batch of {len(batch_uris)} tracks")
+        except Exception as e:
+            print(f"Error adding final batch of tracks: {e}")
+            return None
 
     print(f"Playlist refreshed with {found_tracks} new tracks")
     return playlist_id
